@@ -9,9 +9,5 @@ fn main() {
             return
         }
     };
-    sock.connect("/tmp/sockiit").expect("Couldn't connect");
-    let msg1 = vec![0,1,2,3];
-    sock.send(&msg1).expect("send_to function failed");
-    let msg1 = vec![1,1,2,3];
-    sock.send(&msg1).expect("send_to function failed");
+    sock.connect("/tmp/kiiwm.daemon").expect("Couldn't connect");
 }

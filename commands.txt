@@ -1,0 +1,13 @@
+kiiwm
+
+    -a (Audio) - amixer backend 
+        -set #
+            example: kiiwm -a -set 70
+                // Sets the audio volume to 70%
+        -get
+            example: kiiwm -a -get
+                // Prints the audio volume (Volume: 70%)
+
+        -inc +/- #
+            example kiiwm -a -inc +5
+                // (Volume: 70%) -> (Volume: 75%)
