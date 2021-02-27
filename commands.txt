@@ -7,7 +7,9 @@ kiiwm
         -get
             example: kiiwm -a -get
                 // Prints the audio volume (Volume: 70%)
-
-        -inc +/- #
-            example kiiwm -a -inc +5
+        -inc #
+            example: kiiwm -a inc 5
+                // (Volume: 70%) -> (Volume: 75%)
+        -dec #
+            example: kiiwm -a dec 5
                 // (Volume: 70%) -> (Volume: 75%)

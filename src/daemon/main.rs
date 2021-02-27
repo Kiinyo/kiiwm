@@ -3,7 +3,7 @@ use std::{
     process::Command};
 
 /// Uses 'amixer' to set the Master volume of the device
-fn set_volume(volume: u8) {
+fn set_volume(volume: u8) -> u8 {
 
     let volume_arg = format!("{}%", volume);
 
@@ -12,8 +12,14 @@ fn set_volume(volume: u8) {
     .arg("Master")
     .arg(&volume_arg)
     .output() {
-        Ok(_) => println!("a{}",volume),
-        Err(e) => println!("Error: Something went wrong with setting the volume via amixer! {:?}", e)
+        Ok(_) => {
+            println!("Success: Volume has been set to {}%", clamp(0, volume as isize, 100));
+            return volume;
+        },
+        Err(e) => {
+            println!("Error: Something went wrong with setting the volume via amixer! {:?}", e);
+            return 255;
+        }
     }
 }
 /// Uses 'amixer' to get the Master volume of the device
@@ -112,9 +118,18 @@ fn main() {
                             // Get the volume
                             let volume = buf[2 + tracker];
                             // Run the amixer program here
-                            set_volume(volume);
+                            let volume = set_volume(volume);
+                            // Let the client know it all worked
+                            match sockiit.send_to(&vec![clamp(0, volume as isize, 100) as u8], address.as_pathname().unwrap()) {
+                                Ok(_) => {
+                                    println! ("Success: Audio volume {}% was sent to the client!", clamp(0, volume as isize, 100) as u8)
+                                }
+                                Err(e) => {
+                                    println! ("Error: Couldn't send back to client! {}", e)
+                                }
+                            }
                             tracker += 3;
-                        }
+                        },
                         // We're getting the volume!
                         2 => {
                             let volume = get_volume();
@@ -127,25 +142,17 @@ fn main() {
                                 }
                             }
                             tracker += 2;
-                        }
+                        },
                         // We're incrementing the volume!
                         3 => {
                             // Get the current volume.
                             let p_volume = get_volume();
                             // Applying the proper inc value
-                            let volume = match buf[2 + tracker] {
-                                // Addition
-                                1 => clamp(0, p_volume as isize + buf[3 + tracker] as isize, 100) as u8,
-                                2 => clamp(0, p_volume as isize - buf[3 + tracker] as isize, 100) as u8,
-                                _ => {
-                                    println!("Error: Invalid inc argument for volume!");
-                                    p_volume
-                                }
-                            };
+                            let volume = clamp( 0, p_volume as isize + buf[2 + tracker] as isize, 100) as u8;
                             // Set the volume
                             set_volume(volume);
                             // Tell the client we set the volume
-                            match sockiit.send_to(&vec![volume], address.as_pathname().unwrap()) {
+                            match sockiit.send_to(&vec![p_volume, volume], address.as_pathname().unwrap()) {
                                 Ok(_) => {
                                     println! ("Success: Audio volume changed from {}% to {}%!", p_volume, volume)
                                 }
@@ -154,8 +161,28 @@ fn main() {
                                 }
                             }
                             // Update thet racker
-                            tracker += 4;
-                        }
+                            tracker += 3;
+                        },
+                        // We're incrementing the volume!
+                        4 => {
+                            // Get the current volume.
+                            let p_volume = get_volume();
+                            // Applying the proper inc value
+                            let volume = clamp( 0, p_volume as isize - buf[2 + tracker] as isize, 100) as u8;
+                            // Set the volume
+                            set_volume(volume);
+                            // Tell the client we set the volume
+                            match sockiit.send_to(&vec![p_volume, volume], address.as_pathname().unwrap()) {
+                                Ok(_) => {
+                                    println! ("Success: Audio volume changed from {}% to {}%!", p_volume, volume)
+                                }
+                                Err(e) => {
+                                    println! ("Error: Couldn't send volume back to client! {}", e)
+                                }
+                            }
+                            // Update thet racker
+                            tracker += 3;
+                        },
                         // Junk audio code!
                         _ => {
                             println! ("Error: Invalid audio code! Got: {}", buf[1 + tracker]);
