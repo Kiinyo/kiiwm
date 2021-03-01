@@ -1,15 +1,20 @@
 kiiwm
 
     -a (Audio) - amixer backend 
-        -set #
-            example: kiiwm -a -set 70
+        set #
+            example: kiiwm -a set 70
                 // Sets the audio volume to 70%
-        -get
-            example: kiiwm -a -get
+        get
+            example: kiiwm -a get
                 // Prints the audio volume (Volume: 70%)
-        -inc #
+        inc #
             example: kiiwm -a inc 5
                 // (Volume: 70%) -> (Volume: 75%)
-        -dec #
+        dec #
             example: kiiwm -a dec 5
                 // (Volume: 70%) -> (Volume: 75%)
+
+    -d (Diagnostics) - free backend
+        ram
+            example: kiiwm -d ram
+                // Gets RAM_AVAILABLE / TOTAL_RAM | UTILIZATION %

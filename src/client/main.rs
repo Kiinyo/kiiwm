@@ -167,6 +167,19 @@ fn main() {
                     println!("  Try 'kii --audio help' for more information!");
                 }
             }
+            "-d" | "--diagnostic" => {
+                if length > 2 {
+                    match args[2].as_str() {
+                        "ram" | "RAM" => {
+                            let ram = send_to_daemon("diagnostic".to_string(), vec![2, 1], true);
+                            println! ("RAM usage {}% of {}GB", ram[0], ram[1]);
+                        }
+                        _ => {
+                            println! ("Aw heck");
+                        }
+                    }
+                }
+            }
             _ => println! ("Error: '{}' wasn't a valid module. See 'kii --help' for more information!", args[1])
         }
     }

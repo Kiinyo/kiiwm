@@ -79,7 +79,60 @@ fn parse_number_from_utf8 (vector: Vec<u8>) -> isize {
 
     return number;
 }
+/// Gets the RAM info
+fn get_ram_info () -> (isize, isize)  {
+    let ram = Command::new("free")
+    .output()
+    .unwrap()
+    .stdout;
 
+    let mut used = Vec::new();
+    let mut total = Vec::new();
+
+    let mut flag = 0;
+
+    for (_, character) in ram.iter().enumerate() {
+        if flag == 0 {
+            match character {
+                b':' => {flag += 1;},
+                _ => {}
+            }
+        } else if flag == 1 {
+            match character {
+                b' ' => {},
+                _ => {
+                    total.push(*character);
+                    flag += 1;
+                }
+            }
+        } else if flag == 2 {
+            match character {
+                b' ' => flag += 1,
+                _ => {total.push(*character)}
+            }
+        } else if flag == 3 {
+            match character {
+                b' ' => {},
+                _ => {
+                    used.push(*character);
+                    flag += 1;
+                }
+            }
+        } else {
+            match character {
+                b' ' => break,
+                _ => {used.push(*character)}
+            }
+        }
+    }
+
+    let used = parse_number_from_utf8(used);
+    let total = parse_number_from_utf8(total);
+
+    println! ("RAM USED: {}, RAM TOTAL: {}", used, total);
+
+    return (used, total);
+}
 fn main() {
     // Hello world so I don't get confused
     println!("Hello, I am the daemon!");
@@ -189,11 +242,37 @@ fn main() {
                             break 'buffers;
                         }
                     }
+                },
+                // Diagnostics
+                2 => {
+                    match buf[1 + tracker] {
+                        1 => {
+                            // Get the RAM stats
+                            let (used, total) = get_ram_info();
+                            // Get the percentage
+                            let percentage = (used as f32 / total as f32 * 100 as f32) as u8;
+                            // Convert free into usable info
+                            let total: f32 = total as f32 / 1_000_000 as f32;
+                            let total = total.round();
+                            // Send to socket
+                            match sockiit.send_to(&vec![percentage, total as u8], address.as_pathname().unwrap()) {
+                                Ok(_) => println!("Success: RAM usage {}% of {}GB was sent to the client!", percentage, total),
+                                Err(e) => println!("Error: Couldn't send RAM usage back to the client! {}", e)
+                            }
+                        },
+                        // Junk audio code!
+                        _ => {
+                            println! ("Error: Invalid diagnostic code! Got: {}", buf[1 + tracker]);
+                            break 'buffers;
+                        }
+                    }
+
+                    tracker += 2;
                 }
                 // Quit command
                 255 => {
                     break 'messages;
-                }
+                },
                 _ => {
                     break 'buffers;
                 }
