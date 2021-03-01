@@ -129,9 +129,57 @@ fn get_ram_info () -> (isize, isize)  {
     let used = parse_number_from_utf8(used);
     let total = parse_number_from_utf8(total);
 
-    println! ("RAM USED: {}, RAM TOTAL: {}", used, total);
-
     return (used, total);
+}
+fn get_cpu_info (timestep: u8) -> u8 {
+
+    let mut used: Vec<u8> = Vec::new();
+
+    let cpu = Command::new("mpstat")
+    .arg("-P")
+    .arg("ALL")
+    .arg(timestep.to_string())
+    .arg("1")
+    .arg("-o")
+    .arg("JSON")
+    .output()
+    .unwrap()
+    .stdout;
+
+    let mut counter = 0;
+
+    for (_, character) in cpu.iter().enumerate() {
+        if counter < 5 {
+            match character {
+                b'{' => counter += 1,
+                _ => {}
+            }
+        } else if counter < 16 {
+            match character {
+                b':' => counter += 1,
+                _ => {}
+            }
+        } else if counter < 17 {
+            match character {
+                b' ' => {},
+                _ => {
+                    used.push(*character);
+                    counter += 1;
+                }
+            }
+        } else if counter < 18 {
+            match character {
+                48..=57 => {used.push(*character);}
+                _ => break
+            }
+        } else {
+            break
+        }
+    }
+
+    let used = 100 - parse_number_from_utf8(used) as u8;
+    
+    return used;
 }
 fn main() {
     // Hello world so I don't get confused
@@ -259,6 +307,16 @@ fn main() {
                                 Ok(_) => println!("Success: RAM usage {}% of {}GB was sent to the client!", percentage, total),
                                 Err(e) => println!("Error: Couldn't send RAM usage back to the client! {}", e)
                             }
+                        },
+                        2 => {
+                            // Get the CPU stats
+                            let percentage = get_cpu_info(buf[2 + tracker]);
+                            // Send to socket
+                            match sockiit.send_to(&vec![percentage], address.as_pathname().unwrap()) {
+                                Ok(_) => println!("Success: CPU usage of {}% was sent to the client!", percentage),
+                                Err(e) => println!("Error: Couldn't send CPU usage back to the client! {}", e)
+                            }
+                            tracker += 1;
                         },
                         // Junk audio code!
                         _ => {

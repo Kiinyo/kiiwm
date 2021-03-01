@@ -57,7 +57,6 @@ fn send_to_daemon (client_name: String, packet: Vec<u8>, expecting_answer: bool)
     // Return the buffer
     return buffer;
 }
-
 fn main() {
     // Collect args passed to client
     let args: Vec<String> = env::args().collect();
@@ -173,9 +172,35 @@ fn main() {
                         "ram" | "RAM" => {
                             let ram = send_to_daemon("diagnostic".to_string(), vec![2, 1], true);
                             println! ("RAM usage {}% of {}GB", ram[0], ram[1]);
-                        }
+                        },
+                        "cpu" | "CPU" => {
+                            let mut seconds: u8 = 1;
+                            if length > 3 {
+                                seconds = match args[3].parse::<u8>() {
+                                    Err(_) | Ok(0) => {                                        
+                                        println! ("Error: '{}' isn't a valid timestep, setting to '1' second instead!", args[3]);
+                                        1
+                                    },
+                                    Ok(n) => { n }
+                                };
+                            } else {
+                                println! ("Error: No timestep set, default to '1' second!")
+                            }
+                            println! ("Getting average CPU usage over a {} second interval...", seconds);
+                            let ram = send_to_daemon("diagnostic".to_string(), vec![2, 2, seconds], true);
+                            println! ("CPU usage {}%", ram[0]);
+                        },
+
+                        "help" | "h" | "-h" | "--help" => {
+                            println!("Welcome to the Diagnostics module! Valid arguments include:");
+                            println!("");
+                            println!("  ram     Gets the current ['RAM' usage]% out of total 'RAM'!");
+                            println!("  cpu #   Gets the current ['CPU' usage]% over # seconds!");
+                        },
                         _ => {
-                            println! ("Aw heck");
+                            println!("Error: {} was an invalid argument for the Diagnostic module!", args[2]);
+                            println!("");
+                            println!("  Try 'kii --diagnostic help' for more information!");
                         }
                     }
                 }
