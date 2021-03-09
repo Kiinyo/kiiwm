@@ -203,6 +203,10 @@ fn main() {
                             println!("  Try 'kii --diagnostic help' for more information!");
                         }
                     }
+                } else {
+                    println!("Error: No arguments given for the Diagnostics module!");
+                    println!("");
+                    println!("  Try 'kii --diagnostic help' for more information!");
                 }
             }
             _ => println! ("Error: '{}' wasn't a valid module. See 'kii --help' for more information!", args[1])
